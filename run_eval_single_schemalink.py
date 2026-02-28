@@ -9,14 +9,15 @@ import difflib
 MAX_CRITIC_ATTEMPTS = 3
 
 def evaluate():
-    model= "gpt-4o-mini"
+# specify the model we will replace
+    model = "gemini-3-flash-preview" 
     dev = load_spider(dev=True)
     taxonomy = json.load(open("error_taxonomy.json"))
     total, exact_match, valid_sql, exec_correct = 0, 0, 0, 0
     results = []
     seen = set() # seen samples in creating dataset for finetuning critic
 
-    for idx, item in enumerate(dev[:100]):
+    for idx, item in enumerate(dev[:60]):
         print("\n--- Sample", idx + 1, "---")
         question = item['question']
         gold_sql = item['query']
@@ -159,8 +160,9 @@ def evaluate():
         "summary": summary,
         "results": results
     }
-
-    with open("ablations_actual/100_gpt4o-mini.json", "w") as f:
+    os.makedirs("ablations_actual", exist_ok=True) 
+    
+    with open("ablations_actual/60_gemini_2_5_flash.json", "w") as f:
         json.dump(output, f, indent=2)
 
     print("\n======= Evaluation Summary =======")

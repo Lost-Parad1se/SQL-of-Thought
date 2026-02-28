@@ -1,40 +1,47 @@
 import json, os, re
-from openai import OpenAI
-from typing import List, Dict, Optional
-from prompts import *
 import sqlite3
 from subprocess import Popen, PIPE
 from datetime import datetime
-import anthropic
+from typing import List, Dict, Optional
+from prompts import *
+import google.generativeai as genai
+import time
+# Initialize LLM client with Google's Native SDK
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY environment variable is not set! Please set it in your terminal.")
 
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+# Configure the native SDK
+genai.configure(api_key=GEMINI_API_KEY)
 
-def load_local_model(model_id="Qwen/Qwen2.5-1.5B-Instruct"):
+
+
+def call_agent(prompt: str, model="gemini-2.5-flash", temperature: float = 0.0) -> str:
     """
-    Loads the Llama 3.1 8B Instruct model and tokenizer in 4-bit precision.
+    Calls the LLM agent using Google's native Generative AI SDK.
+    Implemented an auto-retry mechanism and strictly enforced a 60-second 
+    gRPC timeout.
     """
-    model_id = model_id # "Qwen/Qwen2.5-1.5B-Instruct" # "meta-llama/Meta-Llama-3.1-8B-Instruct"
-    print(f"Loading model: {model_id}...")
+    generative_model = genai.GenerativeModel(model)
+    max_retries = 5
+    
+    for attempt in range(max_retries):
+        try:
+            response = generative_model.generate_content(
+                prompt,
+                generation_config={"temperature": temperature} 
+            )
+            return response.text.strip()
+        except Exception as e:
+            print(f"\n[Warning] API request timeout or server overload ({e}). Retrying attempt {attempt + 1}/{max_retries} in 5 seconds...")
+            time.sleep(5)
+            
+    raise Exception("[Error] API request failed after 5 consecutive attempts. Halting execution.")
 
-    # Load the tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-
-    # Load the model with 8-bit quantization
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        torch_dtype=torch.bfloat16,  # Use bfloat16 for efficiency
-        device_map="auto",          # Automatically uses the GPU
-        load_in_4bit=True,          # Enable 4-bit quantization
-    )
-    print("Model loaded successfully.")
-    return model, tokenizer
-
-model, tokenizer = load_local_model()
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-
+def normalize_rows(rows):
+    # Each row is a tuple; we sort each row and also sort the list of rows
+    return sorted([tuple(sorted(map(str, r))) for r in rows])
 def normalize_rows(rows):
     # Each row is a tuple; we sort each row and also sort the list of rows
     return sorted([tuple(sorted(map(str, r))) for r in rows])
@@ -57,19 +64,7 @@ def query_execution(item, sql):
         exec_match = False
     return exec_match, gen_err
 
-def call_agent(prompt: str, model=None, temperature: float = 0.0) -> str:
-    if model:
-            resp = openai_client.chat.completions.create(
-            model= "gpt-5", # "gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],)
-            return resp.choices[0].message.content.strip()
-    resp = client.messages.create(
-        model="claude-3-opus-20240229",
-        max_tokens=2048,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=temperature
-    )
-    return resp.content[0].text.strip()
+
 
 def call_gpt5_agent(prompt: str, temperature: float = 0.0) -> str:
     resp = openai_client.chat.completions.create(
@@ -127,57 +122,7 @@ def check_valid_critic_and_push_error(sql: str, question: str, db_id: str, schem
 
     return valid, error_types
 
-def call_agent_local(
-    prompt: str,
-    model=model,
-    tokenizer=tokenizer,
-    system_prompt: str = "You are an expert agent in a Text2SQL framework specializing in a single task. Please follow the user's instructions carefully."
-) -> str:
-    """
-    Calls a local Hugging Face model to get a response.
 
-    Args:
-        prompt: The user's prompt.
-        model: The loaded Hugging Face model object.
-        tokenizer: The loaded Hugging Face tokenizer object.
-        system_prompt: The system-level instruction for the model.
-
-    Returns:
-        The model's generated text response.
-    """
-    # Llama 3.1 uses a specific chat template.
-    # We must format the input this way for the model to perform well.
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": prompt},
-    ]
-
-    # This function correctly formats the messages into a single string
-    # with the required special tokens (e.g., <|begin_of_text|>, <|eot_id|>)
-    input_prompt = tokenizer.apply_chat_template(
-        messages,
-        tokenize=False,
-        add_generation_prompt=True
-    )
-
-    # Tokenize the formatted prompt
-    input_ids = tokenizer(input_prompt, return_tensors="pt").to(model.device)
-
-    # Generate the response
-    outputs = model.generate(
-        **input_ids,
-        max_new_tokens=2048,   # Max tokens to generate
-        do_sample=False,       # Set to False for deterministic output
-        temperature=None,      # Not needed when do_sample=False
-        top_p=None,            # Not needed when do_sample=False
-        pad_token_id=tokenizer.eos_token_id # Set pad token to end-of-sequence token
-    )
-
-    # Decode the output, skipping the original prompt
-    response_ids = outputs[0][input_ids["input_ids"].shape[1]:]
-    response_text = tokenizer.decode(response_ids, skip_special_tokens=True)
-
-    return response_text.strip()
 
 def is_critic_valid(sql: str, question: str, db_id: str, error_db_path="error_db.json") -> (bool, list):
     try:
@@ -258,7 +203,7 @@ def load_schema_without_PKFK(db_id: str) -> str:
 
 
 # NL2SQL bugs file
-BUGS_DB = open("../../nl2sql_bugs.json").read()
+# BUGS_DB = open("../../nl2sql_bugs.json").read()
 
 def exec_query(db_file: str, sql: str):
     conn = sqlite3.connect(db_file)
