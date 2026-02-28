@@ -1,6 +1,7 @@
 # Reproducing Multi-Agent Text-to-SQL Frameworks (FTEC5660)
 
-**Course:** FTEC5660 - Msc in Financial Technology, CUHK
+**Course:** FTEC5660 - Msc in Financial Technology, CUHK 
+
 **Objective:** Reproduce, evaluate, and enhance a Multi-Agent Text-to-SQL pipeline utilizing Google's Gemini LLMs to parse complex database schemas dynamically.
 
 ## 📌 Project Overview
