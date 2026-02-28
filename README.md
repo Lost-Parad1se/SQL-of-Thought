@@ -145,6 +145,4 @@ Prior to the final engineering of the robust Auto-Retry MLOps wrapper, an initia
 | **Execution Accuracy (EA)** | 97.22% (35/36)  | Consistent high logical reasoning, matching the 60-sample batch.                        |
 | **Exact Match (EM)**        | 55.56% (20/36)  | The EM vs. EA metric divergence remains stark regardless of the batch truncation point. |
 
-```
 
-```
