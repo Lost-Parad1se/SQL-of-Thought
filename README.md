@@ -104,6 +104,13 @@ To make this pipeline enterprise-ready,  **a robust Auto-Retry & Exponential Bac
 
 ---
 
+### 🔧 Original Contribution: Rebuilding Missing Architecture
+Academic open-source repositories are frequently incomplete. Upon cloning the original SQL-of-Thought architecture, the critical evaluation script (`analyze_by_subproblems.py`) required to calculate Exact Match (EM) and Execution Accuracy (EA) was missing. 
+
+Instead of halting the project, **this repository includes a custom, reverse-engineered implementation of the evaluation module.** - It bridges the generated SQL outputs with the local SQLite testing environment.
+- It dynamically calculates EM and EA rates, acting as the foundation for the quantitative analysis presented in the results.
+
+---
 
 ## 📊 Evaluation Results & Comparative Study
 
