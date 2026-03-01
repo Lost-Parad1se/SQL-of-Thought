@@ -42,7 +42,7 @@ Workspace-Root/
 
 This project evaluates performance using the **Spider Dataset** (a large-scale, complex, cross-domain Text-to-SQL dataset).
 
-1. Download the official dataset from the [Yale Spider Homepage](https://yale-lily.github.io/spider).
+1. Download the official dataset from the [Yale Spider Homepage](https://yale-lily.github.io/spider), or the [google drive link](https://drive.google.com/file/d/1403EGqzIDoHMdQF4c9Bkyl7dZLZ5Wt6J/view) directly for your convenience.
 2. Extract the downloaded `spider.zip` file.
 3. Place the extracted `spider` folder in the root directory as shown in the architecture tree above.
 
