@@ -15,29 +15,32 @@ if not GEMINI_API_KEY:
 # Configure the native SDK
 genai.configure(api_key=GEMINI_API_KEY)
 
-
-
 def call_agent(prompt: str, model="gemini-2.5-flash", temperature: float = 0.0) -> str:
     """
     Calls the LLM agent using Google's native Generative AI SDK.
     Implemented an auto-retry mechanism and strictly enforced a 60-second 
-    gRPC timeout.
+    gRPC timeout to prevent zombie connections during batch evaluation.
     """
     generative_model = genai.GenerativeModel(model)
-    max_retries = 5
+    max_retries = 5 
     
-    for attempt in range(max_retries):
+    #  Auto-Retry Mechanism 
+    for attempt in range(max_retries): 
         try:
             response = generative_model.generate_content(
                 prompt,
-                generation_config={"temperature": temperature} 
+                generation_config={"temperature": temperature},
+                #  Strict 60-second hardware timeout 
+                request_options={"timeout": 60.0}  
             )
             return response.text.strip()
         except Exception as e:
             print(f"\n[Warning] API request timeout or server overload ({e}). Retrying attempt {attempt + 1}/{max_retries} in 5 seconds...")
-            time.sleep(5)
+            #  Backoff / Sleep interval 
+            time.sleep(5) 
             
     raise Exception("[Error] API request failed after 5 consecutive attempts. Halting execution.")
+
 
 def normalize_rows(rows):
     # Each row is a tuple; we sort each row and also sort the list of rows
