@@ -69,7 +69,7 @@ You must provide a valid Gemini API Key. Set it as an environment variable in yo
 **PowerShell**
 
 ```
-$env:GEMINI_API_KEY="AIzaSyYourActualKeyHere..."
+$env:GEMINI_API_KEY="AIzaSy...YourActualKeyHere..."
 ```
 
 **For macOS/Linux/GitBash:**
@@ -77,7 +77,7 @@ $env:GEMINI_API_KEY="AIzaSyYourActualKeyHere..."
 **Bash**
 
 ```
-export GEMINI_API_KEY="AIzaSyYourActualKeyHere..."
+export GEMINI_API_KEY="AIzaSy...YourActualKeyHere..."
 ```
 
 ### 3. Run the Evaluation
